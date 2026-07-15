@@ -3,18 +3,28 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
-export async function createCampaign(formData: FormData, questionsJson: string) {
+export async function getColleaguesForSelect() {
+  const colleagues = await prisma.colleague.findMany({
+    where: { active: true, archived: false },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: 'asc' }
+  });
+  return colleagues;
+}
+
+export async function createCampaign(formData: FormData, questionsJson: string, colleagueIdsJson: string = '[]') {
   const name = formData.get('name') as string;
   const description = formData.get('description') as string;
-  const webhook_url = formData.get('webhook_url') as string; // still capturing it since it's passed from form
+  const webhook_url = formData.get('webhook_url') as string;
   
   if (!name) {
     throw new Error('Název je povinný.');
   }
 
   const questions = JSON.parse(questionsJson);
+  const colleagueIds: number[] = JSON.parse(colleagueIdsJson);
 
-  // Vytvoříme kampaň s dočasným klíčem
+  // Vytvoříme kampaň
   const campaign = await prisma.campaign.create({
     data: {
       name,
@@ -30,11 +40,17 @@ export async function createCampaign(formData: FormData, questionsJson: string) 
           html_template: q.html_template, 
           allowed_options: q.allowed_options,
         }))
+      },
+      sessions: {
+        create: colleagueIds.map(cId => ({
+          colleague_id: cId,
+          status: 'pending'
+        }))
       }
     }
   });
 
-  // Nyní, když známe její ID, aktualizujeme klíč na čistý formát
+  // Aktualizujeme klíč
   await prisma.campaign.update({
     where: { id: campaign.id },
     data: { key: `CAMP-${campaign.id}` }
@@ -43,7 +59,7 @@ export async function createCampaign(formData: FormData, questionsJson: string) 
   revalidatePath('/campaigns');
 }
 
-export async function updateCampaign(campaignId: number, formData: FormData, questionsJson: string) {
+export async function updateCampaign(campaignId: number, formData: FormData, questionsJson: string, colleagueIdsJson: string = '[]') {
   const name = formData.get('name') as string;
   const description = formData.get('description') as string;
   const webhook_url = formData.get('webhook_url') as string;
@@ -53,14 +69,23 @@ export async function updateCampaign(campaignId: number, formData: FormData, que
   }
 
   const questions = JSON.parse(questionsJson);
+  const colleagueIds: number[] = JSON.parse(colleagueIdsJson);
 
-  const campaign = await prisma.campaign.findUnique({ where: { id: campaignId }});
+  const campaign = await prisma.campaign.findUnique({ 
+    where: { id: campaignId },
+    include: { sessions: true }
+  });
   if (!campaign || campaign.status !== 'draft') {
     throw new Error('Lze upravovat pouze kampaně ve stavu Příprava.');
   }
 
+  const existingSessionColleagueIds = campaign.sessions.map(s => s.colleague_id);
+  const toAdd = colleagueIds.filter(id => !existingSessionColleagueIds.includes(id));
+  const toRemove = existingSessionColleagueIds.filter(id => !colleagueIds.includes(id));
+
   await prisma.$transaction([
     prisma.question.deleteMany({ where: { campaign_id: campaignId } }),
+    prisma.session.deleteMany({ where: { campaign_id: campaignId, colleague_id: { in: toRemove } } }),
     prisma.campaign.update({
       where: { id: campaignId },
       data: {
@@ -74,6 +99,12 @@ export async function updateCampaign(campaignId: number, formData: FormData, que
             question_text: q.question_text,
             html_template: q.html_template, 
             allowed_options: q.allowed_options,
+          }))
+        },
+        sessions: {
+          create: toAdd.map(cId => ({
+            colleague_id: cId,
+            status: 'pending'
           }))
         }
       }

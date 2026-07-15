@@ -10,6 +10,9 @@ export default async function CampaignsPage() {
     include: {
       questions: {
         orderBy: { question_index: 'asc' }
+      },
+      sessions: {
+        select: { colleague_id: true }
       }
     },
     orderBy: { id: 'desc' }
@@ -45,7 +48,7 @@ export default async function CampaignsPage() {
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 {camp.status === 'draft' && (
-                  <CampaignForm webhookUrl={globalWebhookUrl} initialData={{ id: camp.id, name: camp.name, key: camp.key, description: camp.description || '', webhook_url: camp.webhook_url || '', questions: camp.questions }} isEdit />
+                  <CampaignForm webhookUrl={globalWebhookUrl} initialData={{ id: camp.id, name: camp.name, key: camp.key, description: camp.description || '', webhook_url: camp.webhook_url || '', questions: camp.questions, sessions: camp.sessions }} isEdit />
                 )}
                 <CampaignClientButtons campaignId={camp.id} status={camp.status} />
               </div>

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { QuestionBuilder } from '@/components/campaigns/QuestionBuilder';
-import { createCampaign, updateCampaign } from '@/app/campaigns/actions';
+import { createCampaign, updateCampaign, getColleaguesForSelect } from '@/app/campaigns/actions';
 import { Edit } from 'lucide-react';
+import { ColleagueSelector } from './ColleagueSelector';
 
 interface Props {
   initialData?: any;
@@ -14,7 +15,25 @@ interface Props {
 export function CampaignForm({ initialData, isEdit, webhookUrl }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [questions, setQuestions] = useState<any[]>(initialData?.questions || []);
+  
+  // State for colleagues
+  const [colleagues, setColleagues] = useState<any[]>([]);
+  const [selectedColleagueIds, setSelectedColleagueIds] = useState<number[]>([]);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Načtení aktivních zaměstnanců ze serveru
+      getColleaguesForSelect().then(data => setColleagues(data)).catch(console.error);
+      
+      // Pokud editujeme, vyextrahujeme IDs zaměstnanců z existujících sessions
+      if (isEdit && initialData?.sessions) {
+        const preselectedIds = initialData.sessions.map((s: any) => s.colleague_id);
+        setSelectedColleagueIds(preselectedIds);
+      }
+    }
+  }, [isOpen, isEdit, initialData]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -23,10 +42,11 @@ export function CampaignForm({ initialData, isEdit, webhookUrl }: Props) {
     try {
       const formData = new FormData(e.currentTarget);
       if (isEdit && initialData?.id) {
-        await updateCampaign(initialData.id, formData, JSON.stringify(questions));
+        await updateCampaign(initialData.id, formData, JSON.stringify(questions), JSON.stringify(selectedColleagueIds));
       } else {
-        await createCampaign(formData, JSON.stringify(questions));
-        setQuestions([]); // Reset only on create
+        await createCampaign(formData, JSON.stringify(questions), JSON.stringify(selectedColleagueIds));
+        setQuestions([]); 
+        setSelectedColleagueIds([]);
       }
       setIsOpen(false);
     } catch (error: any) {
@@ -84,6 +104,13 @@ export function CampaignForm({ initialData, isEdit, webhookUrl }: Props) {
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>Automaticky načteno ze serveru (.env). Nelze měnit.</div>
             </div>
           </div>
+
+        {/* --- Nyní vložíme komponentu pro výběr zaměstnanců --- */}
+        <ColleagueSelector 
+          colleagues={colleagues} 
+          selectedIds={selectedColleagueIds} 
+          onChange={setSelectedColleagueIds} 
+        />
 
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
           <QuestionBuilder initialQuestions={questions} onChange={setQuestions} />
