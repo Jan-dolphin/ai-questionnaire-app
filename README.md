@@ -35,6 +35,8 @@ npx tsx prisma/seed.ts
 
 # Spuštění vývojářského serveru
 npm run dev
+
+npx next dev -p 3001
 ```
 
 Aplikace poběží na **http://localhost:3000** (nebo 3001, pokud je 3000 obsazen).
