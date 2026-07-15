@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { ColleagueClientButtons } from "@/components/colleagues/ColleagueClientButtons";
 
 export default async function ColleaguesPage() {
   const colleagues = await prisma.colleague.findMany({
+    where: { archived: false },
     orderBy: { id: 'desc' },
     include: {
       sessions: {
@@ -23,13 +25,13 @@ export default async function ColleaguesPage() {
       <div style={{ display: 'grid', gap: '24px' }}>
         {colleagues.map(col => (
           <div key={col.id} className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '16px', alignItems: 'flex-start' }}>
               <div>
                 <h2 style={{ fontSize: '1.4rem', marginBottom: '4px' }}>{col.name}</h2>
                 <div style={{ color: 'var(--text-muted)' }}>{col.email}</div>
                 {col.department && <div style={{ marginTop: '4px', fontSize: '0.9rem' }}>Oddělení: {col.department}</div>}
               </div>
-              <div style={{ textAlign: 'right' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
                 <span style={{ 
                   display: 'inline-block', 
                   padding: '4px 12px', 
@@ -41,6 +43,7 @@ export default async function ColleaguesPage() {
                 }}>
                   {col.active ? 'Aktivní' : 'Neaktivní'}
                 </span>
+                <ColleagueClientButtons id={col.id} isActive={col.active} />
               </div>
             </div>
 
