@@ -1,66 +1,75 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import { prisma } from "@/lib/prisma";
 
-export default function Home() {
+export default async function Dashboard() {
+  const campaignsCount = await prisma.campaign.count({ where: { is_active: true } });
+  const colleaguesCount = await prisma.colleague.count({ where: { active: true } });
+  const completedSessions = await prisma.session.count({ where: { status: 'completed' } });
+  const inProgressSessions = await prisma.session.count({ where: { status: 'in_progress' } });
+
+  const activeCampaigns = await prisma.campaign.findMany({
+    where: { is_active: true },
+    include: {
+      sessions: true
+    }
+  });
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div>
+      <h1 style={{ marginBottom: '24px', fontSize: '1.8rem' }}>Přehled systému</h1>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+        <div className="card">
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Aktivní kampaně</div>
+          <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{campaignsCount}</div>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="card">
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Aktivní zaměstnanci</div>
+          <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{colleaguesCount}</div>
         </div>
-      </main>
+        <div className="card">
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Dokončené průzkumy</div>
+          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--success)' }}>{completedSessions}</div>
+        </div>
+        <div className="card">
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Čekající / Rozepsané</div>
+          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--warning)' }}>{inProgressSessions}</div>
+        </div>
+      </div>
+
+      <h2 style={{ marginBottom: '16px', fontSize: '1.4rem' }}>Běžící kampaně</h2>
+      <div className="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Název kampaně</th>
+              <th>Klíč</th>
+              <th>Celkem odesláno</th>
+              <th>Dokončeno</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activeCampaigns.map(camp => {
+              const total = camp.sessions.length;
+              const completed = camp.sessions.filter(s => s.status === 'completed').length;
+              return (
+                <tr key={camp.id}>
+                  <td style={{ fontWeight: 500 }}>{camp.name}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{camp.key}</td>
+                  <td>{total}</td>
+                  <td>
+                    <span className="badge badge-completed">{completed} / {total}</span>
+                  </td>
+                </tr>
+              )
+            })}
+            {activeCampaigns.length === 0 && (
+              <tr>
+                <td colSpan={4} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>Žádné aktivní kampaně.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

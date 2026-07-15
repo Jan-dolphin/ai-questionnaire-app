@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+}
+
+model Colleague {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  active        Boolean   @default(true)
+  archived      Boolean   @default(false)
+  last_notified DateTime?
+  tags          String?
+  sessions      Session[]
+}
+
+model Campaign {
+  id                  Int        @id @default(autoincrement())
+  key                 String     @unique
+  name                String
+  description         String?
+  is_active           Boolean    @default(true)
+  archived            Boolean    @default(false)
+  scheduled_start     DateTime?
+  scheduled_end       DateTime?
+  anonymize_responses Boolean    @default(false)
+  webhook_url         String?
+  questions           Question[]
+  sessions            Session[]
+}
+
+model Question {
+  id              Int      @id @default(autoincrement())
+  campaign_id     Int
+  campaign        Campaign @relation(fields: [campaign_id], references: [id])
+  question_index  Int
+  question_type   String   // 'open', 'single_choice', 'multi_choice'
+  question_text   String
+  html_template   String
+  allowed_options String?
+}
+
+model Session {
+  id                     Int       @id @default(autoincrement())
+  colleague_id           Int
+  colleague              Colleague @relation(fields: [colleague_id], references: [id])
+  campaign_id            Int
+  campaign               Campaign  @relation(fields: [campaign_id], references: [id])
+  current_question_index Int       @default(0)
+  status                 String    // 'in_progress', 'completed'
+  answers                String    @default("{}")
+  started_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
+  scheduled_at           DateTime?
+  pending_message_body   String?
+  message_status         String?   // 'pending', 'sent', 'failed'
+}
