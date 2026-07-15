@@ -45,11 +45,13 @@ Aplikace poběží na **http://localhost:3000** (nebo 3001, pokud je 3000 obsaze
 
 ## 🔐 Přístupové údaje
 
-Aplikace je momentálně zajištěna lokálním přihlašováním (NextAuth Credentials). Později bude nahrazeno za Azure Entra ID.
+Aplikace je momentálně zajištěna lokálním přihlašováním (NextAuth Credentials v5). Později bude nahrazeno za Azure Entra ID.
 
-**Zkušební účet (generuje se automaticky při seedu databáze):**
-- **Email:** `admin@dolphin.cz`
-- **Heslo:** `admin123`
+**Pro správné fungování přihlášení musí být v `.env` souboru nastaven bezpečnostní klíč `AUTH_SECRET`.** Můžete jej vygenerovat například příkazem `openssl rand -base64 32`.
+
+**Výchozí (nasazený) administrátorský účet:**
+- **Email:** `admin@dolphinconsulting.cz`
+- **Heslo:** `admin`
 
 ---
 
