@@ -32,6 +32,7 @@ model Campaign {
   key                 String     @unique
   name                String
   description         String?
+  status              String     @default("draft") // 'draft', 'running', 'completed'
   is_active           Boolean    @default(true)
   archived            Boolean    @default(false)
   scheduled_start     DateTime?
@@ -45,7 +46,7 @@ model Campaign {
 model Question {
   id              Int      @id @default(autoincrement())
   campaign_id     Int
-  campaign        Campaign @relation(fields: [campaign_id], references: [id])
+  campaign        Campaign @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
   question_index  Int
   question_type   String   // 'open', 'single_choice', 'multi_choice'
   question_text   String
@@ -58,7 +59,7 @@ model Session {
   colleague_id           Int
   colleague              Colleague @relation(fields: [colleague_id], references: [id])
   campaign_id            Int
-  campaign               Campaign  @relation(fields: [campaign_id], references: [id])
+  campaign               Campaign  @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
   current_question_index Int       @default(0)
   status                 String    // 'in_progress', 'completed'
   answers                String    @default("{}")

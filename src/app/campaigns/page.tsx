@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { CampaignForm } from "@/components/campaigns/CampaignForm";
-import { TriggerCampaignButton } from "./TriggerCampaignButton";
+import { CampaignClientButtons } from "@/components/campaigns/CampaignClientButtons";
 
 export default async function CampaignsPage() {
   const campaigns = await prisma.campaign.findMany({
@@ -12,6 +12,15 @@ export default async function CampaignsPage() {
     },
     orderBy: { id: 'desc' }
   });
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'draft': return <span className="badge" style={{ backgroundColor: 'var(--border)', color: 'var(--foreground)' }}>Příprava</span>;
+      case 'running': return <span className="badge badge-completed">Běží</span>;
+      case 'completed': return <span className="badge badge-progress" style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: 'var(--primary)' }}>Dokončeno</span>;
+      default: return null;
+    }
+  };
 
   return (
     <div>
@@ -25,13 +34,18 @@ export default async function CampaignsPage() {
           <div key={camp.id} className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
-                <h2 style={{ fontSize: '1.4rem', marginBottom: '4px' }}>{camp.name}</h2>
+                <h2 style={{ fontSize: '1.4rem', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {camp.name}
+                  {getStatusBadge(camp.status)}
+                </h2>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Klíč: {camp.key}</div>
                 {camp.description && <div style={{ marginTop: '8px' }}>{camp.description}</div>}
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="btn" style={{ backgroundColor: 'white', color: 'var(--foreground)', border: '1px solid var(--border)' }}>Upravit</button>
-                <TriggerCampaignButton campaignId={camp.id} />
+                {camp.status === 'draft' && (
+                  <CampaignForm initialData={{ id: camp.id, name: camp.name, key: camp.key, description: camp.description || '', webhook_url: camp.webhook_url || '', questions: camp.questions }} isEdit />
+                )}
+                <CampaignClientButtons campaignId={camp.id} status={camp.status} />
               </div>
             </div>
 

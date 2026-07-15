@@ -2,11 +2,17 @@
 
 import { useState } from 'react';
 import { QuestionBuilder } from '@/components/campaigns/QuestionBuilder';
-import { createCampaign } from '@/app/campaigns/actions';
+import { createCampaign, updateCampaign } from '@/app/campaigns/actions';
+import { Edit } from 'lucide-react';
 
-export function CampaignForm() {
+interface Props {
+  initialData?: any;
+  isEdit?: boolean;
+}
+
+export function CampaignForm({ initialData, isEdit }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<any[]>(initialData?.questions || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -15,11 +21,15 @@ export function CampaignForm() {
     
     try {
       const formData = new FormData(e.currentTarget);
-      await createCampaign(formData, JSON.stringify(questions));
+      if (isEdit && initialData?.id) {
+        await updateCampaign(initialData.id, formData, JSON.stringify(questions));
+      } else {
+        await createCampaign(formData, JSON.stringify(questions));
+        setQuestions([]); // Reset only on create
+      }
       setIsOpen(false);
-      setQuestions([]); // Reset
-    } catch (error) {
-      alert("Chyba při ukládání kampaně.");
+    } catch (error: any) {
+      alert(error.message || "Chyba při ukládání kampaně.");
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -27,6 +37,13 @@ export function CampaignForm() {
   };
 
   if (!isOpen) {
+    if (isEdit) {
+      return (
+        <button className="btn" style={{ backgroundColor: 'white', color: 'var(--foreground)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => setIsOpen(true)}>
+          <Edit size={16} /> Upravit
+        </button>
+      );
+    }
     return (
       <button className="btn" onClick={() => setIsOpen(true)}>Vytvořit kampaň</button>
     );
@@ -43,19 +60,19 @@ export function CampaignForm() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Název kampaně</label>
-            <input type="text" name="name" className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)' }} required placeholder="Zadejte název..." />
+            <input type="text" name="name" defaultValue={initialData?.name} className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '0px', border: '1px solid var(--border)' }} required placeholder="Zadejte název..." />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Unikátní Klíč (bez mezer)</label>
-            <input type="text" name="key" className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)' }} required placeholder="napr. HR_DOTAZNIK_2026" />
+            <input type="text" name="key" defaultValue={initialData?.key} className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '0px', border: '1px solid var(--border)' }} required placeholder="napr. HR_DOTAZNIK_2026" />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Popis / Zadání</label>
-            <textarea name="description" className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', minHeight: '80px' }} placeholder="Nepovinný popis kampaně pro interní účely..."></textarea>
+            <textarea name="description" defaultValue={initialData?.description} className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '0px', border: '1px solid var(--border)', minHeight: '80px' }} placeholder="Nepovinný popis kampaně pro interní účely..."></textarea>
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>n8n Webhook URL (spouštěcí)</label>
-            <input type="url" name="webhook_url" className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)' }} placeholder="https://n8n.dolphin.cz/webhook/start-campaign" />
+            <input type="url" name="webhook_url" defaultValue={initialData?.webhook_url} className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '0px', border: '1px solid var(--border)' }} placeholder="https://n8n.dolphin.cz/webhook/start-campaign" />
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>Na tuto adresu se odešle POST request při kliknutí na 'Spustit dotazování'.</div>
           </div>
         </div>
