@@ -51,7 +51,7 @@ export function CampaignClientButtons({ campaignId, status }: Props) {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '8px' }}>
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
       {status === 'draft' && (
         <button 
           onClick={handleStart} 

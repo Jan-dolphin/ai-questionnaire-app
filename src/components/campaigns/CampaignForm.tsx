@@ -8,9 +8,10 @@ import { Edit } from 'lucide-react';
 interface Props {
   initialData?: any;
   isEdit?: boolean;
+  webhookUrl?: string;
 }
 
-export function CampaignForm({ initialData, isEdit }: Props) {
+export function CampaignForm({ initialData, isEdit, webhookUrl }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [questions, setQuestions] = useState<any[]>(initialData?.questions || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,35 +51,42 @@ export function CampaignForm({ initialData, isEdit }: Props) {
   }
 
   return (
-    <div className="card" style={{ marginBottom: '32px', border: '2px solid var(--primary)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '1.4rem' }}>Založit novou kampaň</h2>
-        <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', lineHeight: 1 }}>×</button>
-      </div>
-
-      <form onSubmit={handleSubmit}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Název kampaně</label>
-            <input type="text" name="name" defaultValue={initialData?.name} className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '0px', border: '1px solid var(--border)' }} required placeholder="Zadejte název..." />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Unikátní Klíč (bez mezer)</label>
-            <input type="text" name="key" defaultValue={initialData?.key} className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '0px', border: '1px solid var(--border)' }} required placeholder="napr. HR_DOTAZNIK_2026" />
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Popis / Zadání</label>
-            <textarea name="description" defaultValue={initialData?.description} className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '0px', border: '1px solid var(--border)', minHeight: '80px' }} placeholder="Nepovinný popis kampaně pro interní účely..."></textarea>
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>n8n Webhook URL (spouštěcí)</label>
-            <input type="url" name="webhook_url" defaultValue={initialData?.webhook_url} className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '0px', border: '1px solid var(--border)' }} placeholder="https://n8n.dolphin.cz/webhook/start-campaign" />
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>Na tuto adresu se odešle POST request při kliknutí na 'Spustit dotazování'.</div>
-          </div>
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
+      display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
+      padding: '40px 20px', overflowY: 'auto'
+    }}>
+      <div className="card" style={{ 
+        width: '100%', maxWidth: '800px', 
+        border: '2px solid var(--primary)', 
+        backgroundColor: 'var(--background)',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '1.4rem' }}>{isEdit ? 'Upravit kampaň' : 'Založit novou kampaň'}</h2>
+          <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', lineHeight: 1 }}>×</button>
         </div>
 
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: '24px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Název kampaně</label>
+              <input type="text" name="name" defaultValue={initialData?.name} className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '0px', border: '1px solid var(--border)' }} required placeholder="Zadejte název..." />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Popis / Zadání</label>
+              <textarea name="description" defaultValue={initialData?.description} className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '0px', border: '1px solid var(--border)', minHeight: '80px' }} placeholder="Nepovinný popis kampaně pro interní účely..."></textarea>
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>n8n Webhook URL (spouštěcí)</label>
+              <input type="url" name="webhook_url" value={webhookUrl || ''} readOnly className="form-control" style={{ width: '100%', padding: '10px', borderRadius: '0px', border: '1px solid var(--border)', backgroundColor: 'var(--border)', color: 'var(--text-muted)' }} />
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>Automaticky načteno ze serveru (.env). Nelze měnit.</div>
+            </div>
+          </div>
+
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
-          <QuestionBuilder onChange={setQuestions} />
+          <QuestionBuilder initialQuestions={questions} onChange={setQuestions} />
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
@@ -87,7 +95,8 @@ export function CampaignForm({ initialData, isEdit }: Props) {
             {isSubmitting ? 'Ukládám...' : 'Uložit kampaň'}
           </button>
         </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

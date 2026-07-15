@@ -3,6 +3,8 @@ import { CampaignForm } from "@/components/campaigns/CampaignForm";
 import { CampaignClientButtons } from "@/components/campaigns/CampaignClientButtons";
 
 export default async function CampaignsPage() {
+  const globalWebhookUrl = process.env.N8N_WEBHOOK_URL || '';
+  
   const campaigns = await prisma.campaign.findMany({
     where: { archived: false },
     include: {
@@ -26,7 +28,7 @@ export default async function CampaignsPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1 style={{ fontSize: '1.8rem' }}>Správa Kampaní</h1>
-        <CampaignForm />
+        <CampaignForm webhookUrl={globalWebhookUrl} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -41,9 +43,9 @@ export default async function CampaignsPage() {
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Klíč: {camp.key}</div>
                 {camp.description && <div style={{ marginTop: '8px' }}>{camp.description}</div>}
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 {camp.status === 'draft' && (
-                  <CampaignForm initialData={{ id: camp.id, name: camp.name, key: camp.key, description: camp.description || '', webhook_url: camp.webhook_url || '', questions: camp.questions }} isEdit />
+                  <CampaignForm webhookUrl={globalWebhookUrl} initialData={{ id: camp.id, name: camp.name, key: camp.key, description: camp.description || '', webhook_url: camp.webhook_url || '', questions: camp.questions }} isEdit />
                 )}
                 <CampaignClientButtons campaignId={camp.id} status={camp.status} />
               </div>

@@ -5,20 +5,20 @@ import { revalidatePath } from 'next/cache';
 
 export async function createCampaign(formData: FormData, questionsJson: string) {
   const name = formData.get('name') as string;
-  const key = formData.get('key') as string;
   const description = formData.get('description') as string;
-  const webhook_url = formData.get('webhook_url') as string;
+  const webhook_url = formData.get('webhook_url') as string; // still capturing it since it's passed from form
   
-  if (!name || !key) {
-    throw new Error('Název a Klíč jsou povinné.');
+  if (!name) {
+    throw new Error('Název je povinný.');
   }
 
   const questions = JSON.parse(questionsJson);
 
-  await prisma.campaign.create({
+  // Vytvoříme kampaň s dočasným klíčem
+  const campaign = await prisma.campaign.create({
     data: {
       name,
-      key,
+      key: `TEMP-${Date.now()}-${Math.random()}`,
       description,
       webhook_url,
       status: 'draft',
@@ -34,35 +34,37 @@ export async function createCampaign(formData: FormData, questionsJson: string) 
     }
   });
 
+  // Nyní, když známe její ID, aktualizujeme klíč na čistý formát
+  await prisma.campaign.update({
+    where: { id: campaign.id },
+    data: { key: `CAMP-${campaign.id}` }
+  });
+
   revalidatePath('/campaigns');
 }
 
 export async function updateCampaign(campaignId: number, formData: FormData, questionsJson: string) {
   const name = formData.get('name') as string;
-  const key = formData.get('key') as string;
   const description = formData.get('description') as string;
   const webhook_url = formData.get('webhook_url') as string;
   
-  if (!name || !key) {
-    throw new Error('Název a Klíč jsou povinné.');
+  if (!name) {
+    throw new Error('Název je povinný.');
   }
 
   const questions = JSON.parse(questionsJson);
 
-  // Zkontrolujeme stav kampaně - upravovat lze jen draft
   const campaign = await prisma.campaign.findUnique({ where: { id: campaignId }});
   if (!campaign || campaign.status !== 'draft') {
     throw new Error('Lze upravovat pouze kampaně ve stavu Příprava.');
   }
 
-  // Smažeme staré otázky a vytvoříme nové
   await prisma.$transaction([
     prisma.question.deleteMany({ where: { campaign_id: campaignId } }),
     prisma.campaign.update({
       where: { id: campaignId },
       data: {
         name,
-        key,
         description,
         webhook_url,
         questions: {
@@ -82,7 +84,6 @@ export async function updateCampaign(campaignId: number, formData: FormData, que
 }
 
 export async function deleteCampaign(campaignId: number) {
-  // Hard Delete with cascade!
   await prisma.campaign.delete({
     where: { id: campaignId }
   });
@@ -99,16 +100,21 @@ export async function stopCampaign(campaignId: number) {
 
 export async function triggerN8nWebhook(campaignId: number) {
   const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
-  if (!campaign || !campaign.webhook_url) {
-    throw new Error('Kampaň nemá nastavený Webhook URL.');
+  if (!campaign) {
+    throw new Error('Kampaň nebyla nalezena.');
   }
   
   if (campaign.status === 'completed') {
     throw new Error('Dokončenou kampaň nelze znovu spustit.');
   }
 
+  const webhookUrl = process.env.N8N_WEBHOOK_URL || campaign.webhook_url;
+  if (!webhookUrl) {
+    throw new Error('Není nastaven n8n Webhook URL v .env souboru.');
+  }
+
   try {
-    const res = await fetch(campaign.webhook_url, {
+    const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
