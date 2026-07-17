@@ -57,3 +57,47 @@ export async function deleteColleague(id: number) {
   revalidatePath('/colleagues');
   revalidatePath('/campaigns');
 }
+
+export async function createColleague(formData: FormData) {
+  const name = formData.get('name') as string;
+  const email = formData.get('email') as string;
+  
+  if (!name || !email) {
+    throw new Error('Jméno a email jsou povinné.');
+  }
+
+  const existing = await prisma.colleague.findUnique({
+    where: { email }
+  });
+  
+  if (existing) {
+    if (existing.archived) {
+      // Zaměstnanec byl dříve smazán (soft-delete), obnovíme ho
+      await prisma.colleague.update({
+        where: { id: existing.id },
+        data: {
+          name, // Aktualizujeme jméno, kdyby se změnilo
+          active: true,
+          archived: false
+        }
+      });
+      revalidatePath('/colleagues');
+      revalidatePath('/campaigns');
+      return;
+    } else {
+      throw new Error('Tento email již existuje a uživatel je aktivní.');
+    }
+  }
+
+  await prisma.colleague.create({
+    data: {
+      name,
+      email,
+      active: true,
+      archived: false
+    }
+  });
+
+  revalidatePath('/colleagues');
+  revalidatePath('/campaigns');
+}

@@ -145,6 +145,7 @@ export async function triggerN8nWebhook(campaignId: number) {
   }
 
   try {
+    console.log('Webhook URL used:', webhookUrl);
     const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

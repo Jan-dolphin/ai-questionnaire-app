@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { ColleagueClientButtons } from "@/components/colleagues/ColleagueClientButtons";
+import { ColleagueForm } from "@/components/colleagues/ColleagueForm";
 
 export default async function ColleaguesPage() {
   const colleagues = await prisma.colleague.findMany({
     where: { archived: false },
-    orderBy: { id: 'desc' },
+    orderBy: { name: 'asc' },
     include: {
       sessions: {
         include: {
@@ -16,10 +17,10 @@ export default async function ColleaguesPage() {
   });
 
   return (
-    <div>
+    <main style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1 style={{ fontSize: '1.8rem' }}>Zaměstnanci</h1>
-        <button className="btn">Přidat zaměstnance</button>
+        <ColleagueForm />
       </div>
 
       <div style={{ display: 'grid', gap: '24px' }}>
@@ -81,6 +82,6 @@ export default async function ColleaguesPage() {
           </div>
         ))}
       </div>
-    </div>
+    </main>
   );
 }
